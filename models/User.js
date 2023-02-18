@@ -6,7 +6,8 @@ const UserSchema = new Schema({
     shopname:String,
     contact:Number,
     email:String,
-    password:String
+    password:String,
+    verified:Boolean
 })
 
 const User = mongoose.model('User', UserSchema)

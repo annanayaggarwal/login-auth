@@ -1,11 +1,43 @@
 const express = require('express')
 const router = express.Router();
 
+
 //mongodb user model
 const User = require('./../models/User')
 
+//mongodb userverification model
+const UserVerification = require('./../models/userverification')
+
+// email handler
+const nodemailer = require('nodemailer');
+
+//unique string
+const uuid = require('uuid');
+
+//secret file
+require("dotenv").config();
+
 //password handler
 const bcrypt = require('bcrypt');
+
+//nodemailer transporter
+let transporter = nodemailer.createTransport({
+    service : "gmail",
+    // secure : true,
+    auth:{
+        user : process.env.AUTH_EMAIL,
+        pass : process.env.AUTH_PASS,
+    }
+})
+
+transporter.verify((error,success)=>{
+    if(error){
+        console.log(error)
+    }else{
+        console.log("ready for messages")
+        console.log(success);
+    }
+})
 
 router.post('/signup',(req,res) =>{
     let {name,shopname, contact, email, password} = req.body;
@@ -14,7 +46,6 @@ router.post('/signup',(req,res) =>{
     // contact = contact.trim();
     // email = email.trim();
     // password = password.trim();
-
 
 if(name =="" || shopname == "" || contact == "" || email =="" || password ==""){
     res.json({
@@ -47,7 +78,7 @@ if(name =="" || shopname == "" || contact == "" || email =="" || password ==""){
             //if user alresdy exists
             res.json({
                 status:"failed",
-                message:"User with this mail alresdy exist"
+                message:"User with this mail already exist"
             })
         }else{
             //try to create new user
@@ -89,7 +120,50 @@ if(name =="" || shopname == "" || contact == "" || email =="" || password ==""){
 
 
 router.post('/signin',function(req,res){
-    
+    let {email, password} = req.body;
+    if(email =="" || password ==""){
+        res.json({
+            status:"failed",
+            message:"empty fields"
+        })
+    }else{
+        User.find({email}).then(data=>{
+            if(data.length){
+                const hashedPassword = data[0].password;
+                bcrypt.compare(password,hashedPassword).then(result=>{
+                    if(result){
+                        res.json({
+                            status:"SUCCESS",
+                            message:"SignUp successfull",
+                            data: result,
+                        })
+                    }else{
+                        res.json({
+                            status:"FAILED",
+                            message:"Wrong password",
+                        })
+                    }
+                })
+                .catch(err=>{
+                    res.json({
+                        status:"FAILED",
+                        message:"error occured while comparing",
+                    })
+                })
+            }else{
+                res.json({
+                    status:"FAILED",
+                    message:"invalid credentials",
+                })
+            }
+        })
+        .catch(err=>{
+            res.json({
+                status:"FAILED",
+                message:"error occured while checking for existing user",
+            })
+        })
+    }
 })
 
 module.exports = router;
